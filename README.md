@@ -1,52 +1,66 @@
-# light-sdk
-or: a tool for building Tools
+# Wikipedia for Light Phone III
 
-## tl;dr
-This repository contains the scaffolding for building simple tools for the Light Phone III. Included are a library ([:sdk:client](./sdk/client)) and placeholder application ([:tool](./tool)) that depends on it. To create a tool that is fully compatible with LightOS, you must write your application code within the `tool` module, using the primitives provided by the sdk client library.
+A calm, text-first Wikipedia reader built for the Light Phone III using the
+[Light SDK](https://github.com/lightphone/light-sdk). Search articles, open
+random ones, browse what happened *on this day*, and jump straight to the next
+section or related articles — all in LightOS's monochrome, distraction-free
+style.
 
-You can and should use current Android best practices: Kotlin for all source code, Compose for UI, Coroutines for async programming, and MVVM architecture. **Although this is appears to be a fairly standard Android dev environment, you will quickly find out that we are (gently but broadly) restricting which Android APIs and third-party libraries can be used. This is in an effort to provide a secure and distinctly _light_ experience for our users. These restrictions are _not_ set in stone and should ease up over time. If there is a stable, open-source library that you'd like us to allow, please let us know! More on this later.**
+This tool is a fork of the Light SDK repo with all changes living in the `tool/`
+module, which is what Light's build pipeline compiles (`./gradlew :tool:assembleRelease`).
 
-## IMPORTANT!! July 1, 2026 Update
-If you're reading this, welcome! You're early! (in a cool way)
-This repo is a work-in-progress and will remain so for a while. Things are going to change _fast_ in the coming weeks. If you're going to start building right away, be sure to `git pull` frequently.
-Before you do, though, please be aware that **while we feel good about letting everybody start to explore and build, we are still working on the infrastructure to properly deploy your new tools.**
-The currently builds of LightOS in the wild are not yet ready to "play nice" with the tools built here. If you're someone who's already comfortable working with ADB to sideload APKs on your
-Light Phone III, you can totally do that with whatever you do here! But we're shooting to make these tools feel as seamless as the ones already available in LightOS, and that's going to take a bit more work. 
-We're hoping to have an update on that front later this month. In the meantime, the best way to start working is to use an Android emulator running our new [LightOS Emulator](sdk/emulator). The instructions for getting that up and running
-are [right here](docs/system_app).
+## Features
 
-## Quickstart
+- **Search** — look up any Wikipedia article.
+- **Random Article** — open a random article (also available from inside any article).
+- **On This Day** — see what actually happened on today's date, with the linked
+  Wikipedia pages shown as tappable articles beneath each event.
+- **Recent** — your last few opened articles, one tap to reopen.
+- **Article view** — readable plain-text extract with section navigation
+  ("skip to next section") and the full list of related articles, each tappable.
 
-### Running your Tool
-**You can test your tool on any Android device or emulator**, but certain functionality (receiving push notifications, requesting special permissions) can only be tested with:
-A) Real Light Phone hardware running LightOS
-B) An Android emulator (on your computer) set up to run our LightOS emulator app as a _system app_ ([see advanced instructions](docs/system_app))
+## Screenshots
 
-You can quickly [create an emulator](https://developer.android.com/studio/run/managing-avds) that generally feels like an LPIII by using the following settings:
-* 1080 X 1240, 3.92" display
-* Android API 34
-* NO Google Play Services installed
+![Wikipedia home screen](docs/screenshots/home.png)
 
-### Start Building
-1. Fork and/or clone this repository into your local dev environment.
-2. Install Android Studio and open this project within it. (IntelliJ IDEA should also work)
+*Home screen: Search, Random Article, On This Day, and Recent.*
 
-3. Edit the code in `HomeScreen` and `HomeScreenViewModel` to get started. `Homescreen` surfaces a `@Composable` method named `Content`. This is the UI that is shown when the tool first boots. You'll notice this UI sources data from it's `viewModel` field, which is an instance of `HomeScreenViewModel`. Edit that class with your screen's logic and expose the data to the UI using either Compose `State` or Coroutine `Flow`s. If you want to create a new screen, create a new Screen/ViewModel pair: your screen should extend from `LightScreen` and your VM from `LightScreenViewModel`. Your screen implementation will need:
-   1. A direct reference to your ViewModel's class type
-   2. A factory method for creating a new instance of your ViewModel.
+## Current status
 
-Look at `HomeScreen` as an example for how this is done. To navigate to your new screen, use the `navigateTo` function built into `LightScreen` - just pass it a lambda to create an instance of your new screen. Note that the `LightScreen` constructor takes in a `SealedLightActivity`. The lambda is provided an instance of this as a default parameter.
+This is an early community submission built against the Light SDK. It is
+**not yet Light-vetted**. Until Light's official "build it, sign it, share it"
+pipeline is live, you can sideload the debug APK onto a Light Phone III via ADB
+(the same way any Android APK is installed). LightOS will warn that the tool
+isn't vetted yet — that is expected for a community build.
 
-Since LightOS does not use Android system navigation, we provide a back button for you. As long as you use `navigateTo` to move between screens, our back button should work great. If need be, you can override the `onBackPressed` method in your `LightViewModel`.
+## Building
 
-### Sharing Your Tool
-**As of July 1, 2026, there's no "easy" way to share your tool with a Light Phone III user. We're working hard on that. This is how we believe it's going to look.**
+The Wikipedia tool lives in the `tool/` module. From the repo root:
 
-Given our relatively limited resources and desire to keep our users safe, we're requiring that all community tools be open source (including our own!). We will be building and signing these tools directly from a publicly available git commit, and we'll be archiving the source at build time. You're free to build and share privately, but LightOS won't let you install tools that are not signed by us without acknowledging privacy and performance risks. We won't block users from performing these "dangerous" sideloads, but we're not going to encourage it either. In the near future, you'll be able to queue up a build of your tool on our servers, and if it follows our guidelines and compiles cleanly, we will hand you back a signed, shareable APK.
+```bash
+./gradlew :tool:assembleDebug
+```
 
-Once we release a version of LightOS that supports community tools, users will have an option to choose what kind of tools they want to be able to run on their device:
-- **Light-approved tools**: These include tools that are either built internally by the Light team, or built by the community and officially tested/signed-off by the Light team. We don't know _exactly_ what that sign-off process is going to look like, but as a heads-up: we're going to be looking pretty hard at whether a submitted tool matches the Light ethos both functionally and aesthetically. We've included a UX/UI library to make this as easy as possible! From a technical standpoint, these approved tools are both signed by us _and_ added to an "allow-list" within LightOS. Phones with this option selected will only install and display tools that meet both criteria.
-- **SDK-built tools**: This is a slightly more permissive choice. Phones with this option selected will install and launch any tool that was built and signed by Light. These don't require any manual approval by us (though we can block them in extreme cases). If a user wants to be able to install a tool that was shared locally or somewhere outside of Light's dashboard, but they still want to be confident that it will run well and integrate nicely with LightOS, they might choose this option!
-- **Any tools**: A user will have the option to make any APK launchable from LightOS, but they will own the responsibility of getting them un/installed. When a user selects this option, we will be warning them that they are potentially opening their device up to security risks, and in doing so will limit our ability to support them if something goes wrong.
+The resulting APK is at `tool/build/outputs/apk/debug/tool-debug.apk`.
 
-## [Complete Documentation](./docs)
+`tool/lighttool.toml` targets real LightOS (`serverPackage = "com.lightos"`).
+To run against the LightOS emulator instead, switch that line to
+`com.thelightphone.sdk.emulator`.
+
+To install on a device:
+
+```bash
+adb install -r tool/build/outputs/apk/debug/tool-debug.apk
+```
+
+## Notes
+
+- Requires `android.permission.INTERNET` (Wikipedia REST + Action APIs).
+- Article text and metadata are from the Wikimedia APIs; content is licensed
+  under [CC BY-SA](https://creativecommons.org/licenses/by-sa/4.0/). The app's
+  About screen credits this.
+- No account, no tracking, no ads — just Wikipedia.
+
+## License
+
+MIT — see the repository [LICENSE](../../LICENSE).
