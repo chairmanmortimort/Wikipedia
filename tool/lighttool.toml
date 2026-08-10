@@ -2,8 +2,9 @@
 id = "com.thelightphone.wikipedia"
 label = "Wikipedia"
 versionCode = 1
-versionName = "1.0.0"
+versionName = "0.1.0"
 permissions = ["android.permission.INTERNET"]
-# change if you run this on an LP3!
-# serverPackage = "com.lightos"
-serverPackage = "com.thelightphone.sdk.emulator"
+# Target real LightOS on a physical Light Phone III.
+serverPackage = "com.lightos"
+# For the LightOS emulator instead, comment the line above and use:
+# serverPackage = "com.thelightphone.sdk.emulator"

@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -41,6 +42,7 @@ import com.thelightphone.sdk.ui.defaultKeyboardOptions
 import com.thelightphone.sdk.ui.LightThemeTokens
 import com.thelightphone.sdk.ui.LightTopBar
 import com.thelightphone.sdk.ui.LightTopBarCenter
+import com.thelightphone.sdk.ui.LocalHapticsEnabled
 import com.thelightphone.sdk.ui.gridUnitsAsDp
 import com.thelightphone.sdk.ui.lightClickable
 
@@ -59,6 +61,7 @@ class WikipediaHomeScreen(sealedActivity: SealedLightActivity) :
         val themeColors by LightThemeController.colors.collectAsState()
         val state by viewModel.uiState.collectAsState()
 
+        CompositionLocalProvider(LocalHapticsEnabled provides true) {
         LightTheme(colors = themeColors) {
             Box(
                 modifier = Modifier
@@ -156,6 +159,7 @@ class WikipediaHomeScreen(sealedActivity: SealedLightActivity) :
                 }
             }
         }
+        }
     }
 }
 
@@ -243,7 +247,7 @@ private fun HomeContent(
         )
 
         if (recentTitles.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(2f.gridUnitsAsDp()))
+            Spacer(modifier = Modifier.height(0.5f.gridUnitsAsDp()))
             LightText(
                 text = "Recent",
                 variant = LightTextVariant.Subheading,
@@ -254,6 +258,7 @@ private fun HomeContent(
                     text = title,
                     icon = LightIcons.LIST,
                     onClick = { onOpenRecent(title) },
+                    variant = LightTextVariant.Detail,
                 )
             }
         }
@@ -265,6 +270,7 @@ private fun HomeMenuItem(
     text: String,
     icon: com.thelightphone.sdk.ui.LightIconConfiguration,
     onClick: () -> Unit,
+    variant: LightTextVariant = LightTextVariant.Heading,
 ) {
     Column(
         modifier = Modifier
@@ -274,7 +280,7 @@ private fun HomeMenuItem(
     ) {
         LightText(
             text = text,
-            variant = LightTextVariant.Subheading,
+            variant = variant,
         )
     }
 }
