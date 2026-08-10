@@ -10,6 +10,15 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Light's LP3 keyboard library is published to GitHub Packages and is a
+        // transitive dependency of :sdk:ui. Credentials come from the gitignored
+        // local.properties (gpr.user / gpr.key) or the GH_PACKAGES_* environment
+        // variables — never committed to the repository.
+        maven {
+            name = "JitPack"
+            url = uri("https://jitpack.io")
+        }
+        // Public mirror fallback (no credentials required).
         maven {
             name = "JitPack"
             url = uri("https://jitpack.io")
@@ -27,11 +36,3 @@ include(":sdk:client")
 include(":sdk:server")
 include(":sdk:emulator")
 include(":tool")
-include(":examples:ui-demo")
-project(":examples:ui-demo").projectDir = file("examples/ui-demo")
-include(":examples:weather")
-project(":examples:weather").projectDir = file("examples/weather")
-include(":examples:authenticator")
-project(":examples:authenticator").projectDir = file("examples/authenticator")
-include(":examples:audio-demo")
-project(":examples:audio-demo").projectDir = file("examples/audio-demo")

@@ -59,6 +59,6 @@ kotlin {
 
 dependencies {
     implementation(project(":sdk:client"))
+    implementation(libs.kotlinx.serialization.json)
     testImplementation(libs.kotlin.test)
-    ksp(libs.androidx.room.compiler)
 }
