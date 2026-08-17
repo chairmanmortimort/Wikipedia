@@ -1,0 +1,10 @@
+[tool]
+id          = "com.mortimort.zork"
+label       = "Zork I"
+versionCode = 1
+versionName = "1.0.0"
+permissions = []
+orientation = "portrait"
+# For the LP3 emulator: com.thelightphone.sdk.emulator
+# For a real LP3 device:        com.lightos
+serverPackage = "com.thelightphone.sdk.emulator"
