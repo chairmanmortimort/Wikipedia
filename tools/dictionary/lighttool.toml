@@ -1,0 +1,12 @@
+[tool]
+id          = "com.mortimort.dictionary"
+label       = "Dictionary"
+versionCode = 1
+versionName = "1.0.0"
+# Live Wiktionary lookup needs network access.
+permissions = ["android.permission.INTERNET"]
+orientation = "portrait"
+# Running on the LightOS emulator:
+serverPackage = "com.thelightphone.sdk.emulator"
+# For a real Light Phone III, switch to:
+# serverPackage = "com.lightos"
