@@ -1,13 +1,11 @@
 package com.thelightphone.wikipedia
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.input.rememberTextFieldState
@@ -18,7 +16,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -75,8 +72,11 @@ class WikipediaHomeScreen(sealedActivity: SealedLightActivity) :
                             onRandomClick = viewModel::openRandom,
                             onOnThisDayClick = viewModel::openOnThisDay,
                             onSettingsClick = viewModel::openAbout,
+                            onClearRecents = viewModel::openConfirmClearRecents,
                             recentTitles = state.recentTitles,
                             onOpenRecent = viewModel::openArticle,
+                            showRandomArticle = state.showRandomArticle,
+                            showOnThisDay = state.showOnThisDay,
                         )
                     }
 
@@ -129,16 +129,27 @@ class WikipediaHomeScreen(sealedActivity: SealedLightActivity) :
                             extract = mode.extract,
                             thumbnailUrl = mode.thumbnailUrl,
                             links = mode.links,
+                            hasTable = mode.hasTable,
+                            tables = mode.tables,
                             isLoading = mode.isLoading,
                             onBack = viewModel::cancelSearch,
+                            onSearch = viewModel::openSearch,
                             onOpenSettings = viewModel::openAbout,
                             onOpenLink = viewModel::openLink,
-                            onRandom = viewModel::openRandom,
                         )
                     }
 
                     is WikipediaScreenMode.About -> {
-                        AboutContent(onBack = viewModel::closeAbout)
+                        AboutContent(
+                            onBack = viewModel::closeAbout,
+                            invertColors = state.invertColors,
+                            onToggleInvertColors = viewModel::toggleInvertColors,
+                            onClearRecents = viewModel::openConfirmClearRecents,
+                            showRandomArticle = state.showRandomArticle,
+                            onToggleRandomArticle = viewModel::toggleShowRandomArticle,
+                            showOnThisDay = state.showOnThisDay,
+                            onToggleOnThisDay = viewModel::toggleShowOnThisDay,
+                        )
                     }
 
                     is WikipediaScreenMode.OnThisDay -> {
@@ -147,6 +158,13 @@ class WikipediaHomeScreen(sealedActivity: SealedLightActivity) :
                             isLoading = mode.isLoading,
                             onBack = viewModel::closeOnThisDay,
                             onOpenPage = viewModel::openArticle,
+                        )
+                    }
+
+                    is WikipediaScreenMode.ConfirmClearRecents -> {
+                        ConfirmClearRecentsContent(
+                            onBack = viewModel::cancelConfirmClearRecents,
+                            onConfirm = viewModel::confirmClearRecents,
                         )
                     }
                 }
@@ -164,10 +182,13 @@ class WikipediaHomeScreen(sealedActivity: SealedLightActivity) :
 }
 
 /**
- * Home screen — Wikipedia logo + title, navigation items, and recent articles.
+ * Home screen — title, navigation items, and recent articles.
  * The whole screen is a single scrollable column so every item is reachable on
  * the LP3 (which cannot focus an inner weight() scroll region). The "Wikipedia"
  * title uses a capped one-line size: larger than Heading but it never wraps.
+ *
+ * Random Article and On This Day are toggleable — they are only shown in the
+ * nav list when their preference is enabled (see About screen toggles).
  */
 @Composable
 private fun HomeContent(
@@ -175,8 +196,11 @@ private fun HomeContent(
     onRandomClick: () -> Unit,
     onOnThisDayClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onClearRecents: () -> Unit,
     recentTitles: List<String> = emptyList(),
     onOpenRecent: (String) -> Unit = {},
+    showRandomArticle: Boolean = true,
+    showOnThisDay: Boolean = true,
 ) {
     Column(
         modifier = Modifier
@@ -194,19 +218,7 @@ private fun HomeContent(
             modifier = Modifier.padding(bottom = 0.5f.gridUnitsAsDp()),
         )
 
-        // Logo + large single-line title
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 0.25f.gridUnitsAsDp()),
-            contentAlignment = Alignment.Center,
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.wikipedia_logo),
-                contentDescription = "Wikipedia logo",
-                modifier = Modifier.size(8f.gridUnitsAsDp()),
-            )
-        }
+        // Title — large single-line, no logo.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -235,16 +247,20 @@ private fun HomeContent(
             icon = LightIcons.SEARCH,
             onClick = onSearchClick,
         )
-        HomeMenuItem(
-            text = "Random Article",
-            icon = LightIcons.LOOP,
-            onClick = onRandomClick,
-        )
-        HomeMenuItem(
-            text = "On This Day",
-            icon = LightIcons.LIGHT_LOGO,
-            onClick = onOnThisDayClick,
-        )
+        if (showRandomArticle) {
+            HomeMenuItem(
+                text = "Random Article",
+                icon = LightIcons.LOOP,
+                onClick = onRandomClick,
+            )
+        }
+        if (showOnThisDay) {
+            HomeMenuItem(
+                text = "On This Day",
+                icon = LightIcons.LIGHT_LOGO,
+                onClick = onOnThisDayClick,
+            )
+        }
 
         if (recentTitles.isNotEmpty()) {
             Spacer(modifier = Modifier.height(0.5f.gridUnitsAsDp()))
@@ -262,6 +278,17 @@ private fun HomeContent(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(2f.gridUnitsAsDp()))
+        LightBottomBar(
+            items = listOf(
+                LightBarButton.LightIcon(
+                    icon = LightIcons.TRASH,
+                    onClick = onClearRecents,
+                    contentDescription = "Clear recents",
+                ),
+            ),
+        )
     }
 }
 

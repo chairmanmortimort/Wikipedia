@@ -1,10 +1,13 @@
 package com.thelightphone.wikipedia
 
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.viewModelScope
+import android.util.Log
 import com.thelightphone.sdk.LightViewModel
 import com.thelightphone.sdk.SimpleLightScreen
+import com.thelightphone.sdk.ui.LightThemeController
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
@@ -40,6 +43,8 @@ sealed class WikipediaScreenMode {
         val extract: String = "",
         val thumbnailUrl: String? = null,
         val links: List<String> = emptyList(),
+        val hasTable: Boolean = false,
+        val tables: List<WikiTable> = emptyList(),
         val isLoading: Boolean = false,
     ) : WikipediaScreenMode()
 
@@ -51,12 +56,18 @@ sealed class WikipediaScreenMode {
         val events: List<WikiOnThisDayEvent> = emptyList(),
         val isLoading: Boolean = false,
     ) : WikipediaScreenMode()
+
+    /** Confirmation screen before clearing recent articles. */
+    data object ConfirmClearRecents : WikipediaScreenMode()
 }
 
 data class WikipediaUiState(
     val mode: WikipediaScreenMode = WikipediaScreenMode.Home,
     val errorModal: String? = null,
     val recentTitles: List<String> = emptyList(),
+    val invertColors: Boolean = false,
+    val showRandomArticle: Boolean = true,
+    val showOnThisDay: Boolean = true,
 )
 
 private const val NETWORK_ERROR_MESSAGE =
@@ -70,6 +81,9 @@ internal object WikipediaPreferences {
     val LAST_SEARCH_QUERY = stringPreferencesKey("wiki_last_search_query")
     val LAST_ARTICLE_TITLE = stringPreferencesKey("wiki_last_article_title")
     val RECENT_TITLES = stringPreferencesKey("wiki_recent_titles")
+    val INVERT_COLORS = booleanPreferencesKey("wiki_invert_colors")
+    val SHOW_RANDOM_ARTICLE = booleanPreferencesKey("wiki_show_random_article")
+    val SHOW_ON_THIS_DAY = booleanPreferencesKey("wiki_show_on_this_day")
 }
 
 class WikipediaViewModel(
@@ -91,7 +105,7 @@ class WikipediaViewModel(
 
     override fun onScreenShow(screen: SimpleLightScreen<Unit>) {
         super.onScreenShow(screen)
-        // Load recent article titles from DataStore on first show
+        // Load recent article titles and preferences from DataStore on first show
         if (_uiState.value.recentTitles.isEmpty()) {
             viewModelScope.launch(Dispatchers.IO + apiExceptionHandler) {
                 val prefs = dataStore.data.first()
@@ -99,7 +113,25 @@ class WikipediaViewModel(
                     ?.split("|")
                     ?.filter { it.isNotBlank() }
                     ?: emptyList()
-                _uiState.value = _uiState.value.copy(recentTitles = recent)
+                val invertColors = prefs[WikipediaPreferences.INVERT_COLORS] ?: false
+                val showRandomArticle = prefs[WikipediaPreferences.SHOW_RANDOM_ARTICLE] ?: true
+                val showOnThisDay = prefs[WikipediaPreferences.SHOW_ON_THIS_DAY] ?: true
+                _uiState.value = _uiState.value.copy(
+                    recentTitles = recent,
+                    invertColors = invertColors,
+                    showRandomArticle = showRandomArticle,
+                    showOnThisDay = showOnThisDay,
+                )
+                if (invertColors) LightThemeController.setLightTheme() else LightThemeController.setDarkTheme()
+                // One-shot launch self-test marker — confirms the Wikipedia tool
+                // screen shows and prefs load on the LightOS emulator. Matts reads
+                // this via `adb logcat WikiDebug:V` (he self-navigates the UI).
+                Log.d(
+                    "WikiDebug",
+                    "LAUNCH_OK mode=Home showRandom=$showRandomArticle " +
+                        "showOnThisDay=$showOnThisDay invertColors=$invertColors " +
+                        "recents=${recent.size}",
+                )
             }
         }
     }
@@ -117,6 +149,8 @@ class WikipediaViewModel(
     }
 
     fun openRandom() {
+        // Toggleable feature: if hidden, do nothing (menu item is also hidden).
+        if (!_uiState.value.showRandomArticle) return
         viewModelScope.launch(Dispatchers.IO + apiExceptionHandler) {
             val loadStart = Clock.System.now()
             setState(WikipediaScreenMode.Loading("Finding a random article…"))
@@ -201,6 +235,11 @@ class WikipediaViewModel(
             val summary = api.fetchSummary(title).getOrNull()
             val extract = api.fetchExtract(title).getOrElse { "" }
             val links = api.fetchLinks(title).getOrElse { emptyList() }
+            // Tables/lists are dropped by the plain-text extract, so parse the raw
+            // wikitext and render those tables inline in the article.
+            val rawWikitext = api.fetchRawExtract(title).getOrElse { "" }
+            val tables = api.parseTables(rawWikitext)
+            val hasTable = tables.isNotEmpty()
 
             setState(
                 WikipediaScreenMode.Article(
@@ -209,6 +248,8 @@ class WikipediaViewModel(
                     extract = extract,
                     thumbnailUrl = summary?.thumbnailUrl,
                     links = links,
+                    hasTable = hasTable,
+                    tables = tables,
                     isLoading = false,
                 ),
             )
@@ -251,9 +292,62 @@ class WikipediaViewModel(
         _uiState.value = _uiState.value.copy(mode = WikipediaScreenMode.Home)
     }
 
+    fun toggleInvertColors() {
+        viewModelScope.launch(Dispatchers.IO + apiExceptionHandler) {
+            val newValue = !_uiState.value.invertColors
+            _uiState.value = _uiState.value.copy(invertColors = newValue)
+            dataStore.edit { prefs ->
+                prefs[WikipediaPreferences.INVERT_COLORS] = newValue
+            }
+            if (newValue) LightThemeController.setLightTheme() else LightThemeController.setDarkTheme()
+        }
+    }
+
+    fun toggleShowRandomArticle() {
+        viewModelScope.launch(Dispatchers.IO + apiExceptionHandler) {
+            val newValue = !_uiState.value.showRandomArticle
+            _uiState.value = _uiState.value.copy(showRandomArticle = newValue)
+            dataStore.edit { prefs ->
+                prefs[WikipediaPreferences.SHOW_RANDOM_ARTICLE] = newValue
+            }
+        }
+    }
+
+    fun toggleShowOnThisDay() {
+        viewModelScope.launch(Dispatchers.IO + apiExceptionHandler) {
+            val newValue = !_uiState.value.showOnThisDay
+            _uiState.value = _uiState.value.copy(showOnThisDay = newValue)
+            dataStore.edit { prefs ->
+                prefs[WikipediaPreferences.SHOW_ON_THIS_DAY] = newValue
+            }
+        }
+    }
+
+    fun openConfirmClearRecents() {
+        _uiState.value = _uiState.value.copy(mode = WikipediaScreenMode.ConfirmClearRecents)
+    }
+
+    fun cancelConfirmClearRecents() {
+        _uiState.value = _uiState.value.copy(mode = WikipediaScreenMode.About)
+    }
+
+    fun confirmClearRecents() {
+        viewModelScope.launch(Dispatchers.IO + apiExceptionHandler) {
+            _uiState.value = _uiState.value.copy(
+                recentTitles = emptyList(),
+                mode = WikipediaScreenMode.About,
+            )
+            dataStore.edit { prefs ->
+                prefs.remove(WikipediaPreferences.RECENT_TITLES)
+            }
+        }
+    }
+
     // === On This Day ===
 
     fun openOnThisDay() {
+        // Toggleable feature: if hidden, do nothing (menu item is also hidden).
+        if (!_uiState.value.showOnThisDay) return
         viewModelScope.launch(Dispatchers.IO + apiExceptionHandler) {
             val loadStart = Clock.System.now()
             setState(WikipediaScreenMode.OnThisDay(isLoading = true))

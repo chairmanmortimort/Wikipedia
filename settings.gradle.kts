@@ -18,11 +18,6 @@ dependencyResolutionManagement {
             name = "JitPack"
             url = uri("https://jitpack.io")
         }
-        // Public mirror fallback (no credentials required).
-        maven {
-            name = "JitPack"
-            url = uri("https://jitpack.io")
-        }
     }
 }
 
@@ -40,10 +35,6 @@ include(":tools:zork:engine")
 project(":tools:zork:engine").projectDir = file("tools/zork/engine")
 include(":tools:zork")
 project(":tools:zork").projectDir = file("tools/zork")
-
 include(":tools:translator")
 project(":tools:translator").projectDir = file("tools/translator")
-include(":tools:zork:engine")
-project(":tools:zork:engine").projectDir = file("tools/zork/engine")
-include(":tools:zork")
-project(":tools:zork").projectDir = file("tools/zork")
+include(":examples:libby")

@@ -94,27 +94,6 @@ data class WikiContinue(
     val continueToken: String = "",
 )
 
-// === MediaWiki Action API: Random ===
-// https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&format=json
-// Returns a random article title.
-
-@Serializable
-data class WikiRandomResponse(
-    val query: WikiRandomQuery? = null,
-)
-
-@Serializable
-data class WikiRandomQuery(
-    val random: List<WikiRandomResult> = emptyList(),
-)
-
-@Serializable
-data class WikiRandomResult(
-    val id: Int = 0,
-    val title: String = "",
-    @SerialName("ns") val namespace: Int = 0,
-)
-
 // === MediaWiki Action API: Extract (full article text) ===
 // https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles={title}&format=json
 // Returns plain text article content.
@@ -164,6 +143,42 @@ data class WikiLink(
     val wildcard: String? = null,
 )
 
+// === MediaWiki Action API: Raw wikitext (table detection) ===
+// https://en.wikipedia.org/w/api.php?action=query&prop=revisions&rvprop=content&titles={title}&format=json
+// Returns the raw wikitext. We only inspect it for table markers ({| ... |}).
+
+@Serializable
+data class WikiRawExtractResponse(
+    val query: WikiRawExtractQuery? = null,
+)
+
+@Serializable
+data class WikiRawExtractQuery(
+    val pages: Map<String, WikiRawExtractPage> = emptyMap(),
+)
+
+@Serializable
+data class WikiRawExtractPage(
+    val pageid: Int = 0,
+    val title: String = "",
+    val revisions: List<WikiRawRevision> = emptyList(),
+)
+
+@Serializable
+data class WikiRawRevision(
+    val slots: WikiRawSlots? = null,
+)
+
+@Serializable
+data class WikiRawSlots(
+    val main: WikiRawMainSlot? = null,
+)
+
+@Serializable
+data class WikiRawMainSlot(
+    @SerialName("*") val content: String = "",
+)
+
 // === Domain model ===
 // A combined representation of a Wikipedia article for display on LP3.
 
@@ -174,9 +189,45 @@ data class WikiArticle(
     val thumbnailUrl: String? = null,
     val originalImageUrl: String? = null,
     val links: List<String> = emptyList(),
+    val hasTable: Boolean = false,
+    val tables: List<WikiTable> = emptyList(),
 ) {
     val displayTitle: String get() = title
 }
+
+/** A single parsed row from a Wikipedia wikitext table (e.g. a filmography entry). */
+data class WikiTableRow(
+    val title: String = "",
+    val meta: String = "",
+)
+
+/** A Wikipedia wikitext table, parsed so its rows can render on LP3.
+ *  The plain-text extract silently drops these, so we parse the raw wikitext instead. */
+data class WikiTable(
+    val heading: String? = null,
+    val rows: List<WikiTableRow> = emptyList(),
+)
+
+// === REST API: Random article ===
+// https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0
+// Returns a single random page title from the main namespace.
+
+@Serializable
+data class WikiRandomResponse(
+    val query: WikiRandomQuery? = null,
+)
+
+@Serializable
+data class WikiRandomQuery(
+    val random: List<WikiRandomResult> = emptyList(),
+)
+
+@Serializable
+data class WikiRandomResult(
+    val id: Int = 0,
+    val title: String = "",
+    @SerialName("ns") val namespace: Int = 0,
+)
 
 // === REST API: On This Day ===
 // https://en.wikipedia.org/api/rest_v1/feed/onthisday/{type}/{MM}/{DD}

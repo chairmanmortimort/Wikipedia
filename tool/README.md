@@ -21,25 +21,24 @@ adventurous). LightOS will warn that the tool isn't vetted — that's expected.
 ## What this tool does
 
 - **Search** — look up any Wikipedia article.
-- **Random Article** — open a random article (also available from inside any article).
+- **Random Article** — open a random article (toggleable in About).
 - **On This Day** — what actually happened on today's date, with the linked
-  Wikipedia pages shown as tappable articles beneath each event.
+  Wikipedia pages shown as tappable articles beneath each event (toggleable in About).
 - **Recent** — your last few opened articles, one tap to reopen.
 - **Article view** — readable plain-text extract with section navigation
-  ("skip to next section") and the full list of related articles, each tappable.
+  and the full list of related articles, each tappable.
 - **Haptics** — taps give a small vibration, matching the rest of LightOS.
+
+## Settings
+
+Accessed via the gear icon on the home screen. Toggle Random Article and
+On This Day on or off; clear your recent articles list.
 
 ## What this tool deliberately does not do
 
 - No accounts, no tracking, no ads.
 - No infinite feeds, recommendations, or "discover" surfaces — just the
   encyclopedia, the way LightOS intends tools to behave.
-
-## Screenshot
-
-![Wikipedia home screen](docs/screenshots/home.png)
-
-*Home: Search, Random Article, On This Day, and your Recent articles.*
 
 ## Building & sideloading
 
