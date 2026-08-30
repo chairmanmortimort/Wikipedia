@@ -68,6 +68,7 @@ data class WikipediaUiState(
     val invertColors: Boolean = false,
     val showRandomArticle: Boolean = true,
     val showOnThisDay: Boolean = true,
+    val showRecentArticles: Boolean = true,
 )
 
 private const val NETWORK_ERROR_MESSAGE =
@@ -84,6 +85,7 @@ internal object WikipediaPreferences {
     val INVERT_COLORS = booleanPreferencesKey("wiki_invert_colors")
     val SHOW_RANDOM_ARTICLE = booleanPreferencesKey("wiki_show_random_article")
     val SHOW_ON_THIS_DAY = booleanPreferencesKey("wiki_show_on_this_day")
+    val SHOW_RECENT_ARTICLES = booleanPreferencesKey("wiki_show_recent_articles")
 }
 
 class WikipediaViewModel(
@@ -116,11 +118,13 @@ class WikipediaViewModel(
                 val invertColors = prefs[WikipediaPreferences.INVERT_COLORS] ?: false
                 val showRandomArticle = prefs[WikipediaPreferences.SHOW_RANDOM_ARTICLE] ?: true
                 val showOnThisDay = prefs[WikipediaPreferences.SHOW_ON_THIS_DAY] ?: true
+                val showRecentArticles = prefs[WikipediaPreferences.SHOW_RECENT_ARTICLES] ?: true
                 _uiState.value = _uiState.value.copy(
                     recentTitles = recent,
                     invertColors = invertColors,
                     showRandomArticle = showRandomArticle,
                     showOnThisDay = showOnThisDay,
+                    showRecentArticles = showRecentArticles,
                 )
                 if (invertColors) LightThemeController.setLightTheme() else LightThemeController.setDarkTheme()
                 // One-shot launch self-test marker — confirms the Wikipedia tool
@@ -263,10 +267,15 @@ class WikipediaViewModel(
                 prefs[WikipediaPreferences.LAST_ARTICLE_TITLE] = title
             }
 
-            // Update recent titles (most-recent first, dedupe, cap at MAX_RECENT)
-            val updated = (listOf(title) + _uiState.value.recentTitles)
+            // Update recent titles (most-recent first, dedupe). All titles
+            // are kept when showRecentArticles is enabled, otherwise capped.
+            val allUpdated = (listOf(title) + _uiState.value.recentTitles)
                 .distinct()
-                .take(MAX_RECENT)
+            val updated = if (_uiState.value.showRecentArticles) {
+                allUpdated
+            } else {
+                allUpdated.take(MAX_RECENT)
+            }
             _uiState.value = _uiState.value.copy(recentTitles = updated)
             dataStore.edit { prefs ->
                 prefs[WikipediaPreferences.RECENT_TITLES] = updated.joinToString("|")
@@ -309,6 +318,16 @@ class WikipediaViewModel(
             _uiState.value = _uiState.value.copy(showRandomArticle = newValue)
             dataStore.edit { prefs ->
                 prefs[WikipediaPreferences.SHOW_RANDOM_ARTICLE] = newValue
+            }
+        }
+    }
+
+    fun toggleShowRecentArticles() {
+        viewModelScope.launch(Dispatchers.IO + apiExceptionHandler) {
+            val newValue = !_uiState.value.showRecentArticles
+            _uiState.value = _uiState.value.copy(showRecentArticles = newValue)
+            dataStore.edit { prefs ->
+                prefs[WikipediaPreferences.SHOW_RECENT_ARTICLES] = newValue
             }
         }
     }

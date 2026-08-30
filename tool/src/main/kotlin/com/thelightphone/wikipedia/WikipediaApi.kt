@@ -223,10 +223,14 @@ private fun cleanWikiCell(cell: String): String {
     // Strip '' italics / ''' bold
     c = c.replace(Regex("'+"), "")
     // Strip table attribute prefixes: scope="row" | , scope="col" | , rowspan/colspan
-    c = c.replace(Regex("^\\s*scope=\"[^\"]*\"\\s*(?:colspan=\"\\d+\"\\s*)?\\|\\s*"), "")
-    c = c.replace(Regex("^\\s*rowspan=\"\\d+\"\\s*(?:colspan=\"\\d+\"\\s*)?\\|\\s*"), "")
-    c = c.replace(Regex("^\\s*colspan=\"\\d+\"\\s*\\|\\s*"), "")
-    return c.replace(Regex("\\s+"), " ").trim()
+    c = c.replace(Regex("""^\s*scope="[^"]*"\s*(?:colspan="\d+"\s*)?\|"""), "")
+    c = c.replace(Regex("""^\s*rowspan="\d+"\s*(?:colspan="\d+"\s*)?\|"""), "")
+    c = c.replace(Regex("""^\s*colspan="\d+"\s*\|"""), "")
+    // Collapse vertical whitespace introduced by malformed rows
+    c = c.replace(Regex("""\n\s*\n"""), "\n")
+    // Collapse multiple whitespace to a single space
+    c = c.replace(Regex("\\s+"), " ")
+    return c.trim()
 }
 
 /** Replace [[wikilinks]] with their display text (text after the last pipe). */
@@ -329,7 +333,7 @@ private fun parseWikiTableBlock(block: String): WikiTable {
         // column whose header says "title".
         val hdrIdx = hdrFlags.indexOfFirst { it }.takeIf { it >= 0 }
         val titleIdx = hdrIdx ?: globalTitle
-        val title = cells.getOrNull(titleIdx)?.trim() ?: ""
+        val title = cells.getOrNull(titleIdx)?.trim()?.let { sanitizeText(it) } ?: ""
         if (title.isBlank()) return@mapNotNull null
         // Meta: date (any cell containing a 4-digit year) + director (a short
         // non-date cell), dropping the long synopsis column for a clean look.
@@ -338,10 +342,23 @@ private fun parseWikiTableBlock(block: String): WikiTable {
         }
         val dateC = others.firstOrNull { yearRe.containsMatchIn(it) }
         val dirC = others.firstOrNull { it !== dateC && it.length <= 60 && !yearRe.containsMatchIn(it) }
-        val meta = listOfNotNull(dateC, dirC).joinToString(" · ")
+        val meta = listOfNotNull(dateC, dirC).map(::sanitizeText).joinToString(" · ")
         WikiTableRow(title = title, meta = meta)
     }
     return WikiTable(heading = caption, rows = tableRows)
+}
+
+/**
+ * Sanitize a display string for robust rendering on LP3's monochrome screen.
+ * Collapses repeated spaces, trims, and drops zero-width / control chars that
+ * the raw wikitext parser sometimes leaves behind and that render as garbled
+ * boxes or misaligned columns.
+ */
+private fun sanitizeText(s: String): String {
+    return s
+        .replace(Regex("\\s+"), " ")
+        .replace(Regex("""\p{C}"""), "")
+        .trim()
 }
 
 /**

@@ -77,6 +77,7 @@ class WikipediaHomeScreen(sealedActivity: SealedLightActivity) :
                             onOpenRecent = viewModel::openArticle,
                             showRandomArticle = state.showRandomArticle,
                             showOnThisDay = state.showOnThisDay,
+                            showRecentArticles = state.showRecentArticles,
                         )
                     }
 
@@ -136,6 +137,8 @@ class WikipediaHomeScreen(sealedActivity: SealedLightActivity) :
                             onSearch = viewModel::openSearch,
                             onOpenSettings = viewModel::openAbout,
                             onOpenLink = viewModel::openLink,
+                            showRandomArticle = state.showRandomArticle,
+                            onOpenRandom = viewModel::openRandom,
                         )
                     }
 
@@ -144,11 +147,12 @@ class WikipediaHomeScreen(sealedActivity: SealedLightActivity) :
                             onBack = viewModel::closeAbout,
                             invertColors = state.invertColors,
                             onToggleInvertColors = viewModel::toggleInvertColors,
-                            onClearRecents = viewModel::openConfirmClearRecents,
                             showRandomArticle = state.showRandomArticle,
                             onToggleRandomArticle = viewModel::toggleShowRandomArticle,
                             showOnThisDay = state.showOnThisDay,
                             onToggleOnThisDay = viewModel::toggleShowOnThisDay,
+                            showRecentArticles = state.showRecentArticles,
+                            onToggleShowRecentArticles = viewModel::toggleShowRecentArticles,
                         )
                     }
 
@@ -201,6 +205,7 @@ private fun HomeContent(
     onOpenRecent: (String) -> Unit = {},
     showRandomArticle: Boolean = true,
     showOnThisDay: Boolean = true,
+    showRecentArticles: Boolean = true,
 ) {
     Column(
         modifier = Modifier
@@ -262,33 +267,26 @@ private fun HomeContent(
             )
         }
 
-        if (recentTitles.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(0.5f.gridUnitsAsDp()))
-            LightText(
-                text = "Recent",
-                variant = LightTextVariant.Subheading,
-                modifier = Modifier.padding(vertical = 0.5f.gridUnitsAsDp()),
-            )
-            recentTitles.forEach { title ->
-                HomeMenuItem(
-                    text = title,
-                    icon = LightIcons.LIST,
-                    onClick = { onOpenRecent(title) },
-                    variant = LightTextVariant.Detail,
+        if (showRecentArticles) {
+            if (recentTitles.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(0.5f.gridUnitsAsDp()))
+                LightText(
+                    text = "Recent",
+                    variant = LightTextVariant.Subheading,
+                    modifier = Modifier.padding(vertical = 0.5f.gridUnitsAsDp()),
                 )
+                recentTitles.forEach { title ->
+                    HomeMenuItem(
+                        text = title,
+                        icon = LightIcons.LIST,
+                        onClick = { onOpenRecent(title) },
+                        variant = LightTextVariant.Detail,
+                    )
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(2f.gridUnitsAsDp()))
-        LightBottomBar(
-            items = listOf(
-                LightBarButton.LightIcon(
-                    icon = LightIcons.TRASH,
-                    onClick = onClearRecents,
-                    contentDescription = "Clear recents",
-                ),
-            ),
-        )
     }
 }
 

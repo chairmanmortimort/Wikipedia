@@ -49,6 +49,8 @@ fun ArticleContent(
     onSearch: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenLink: (String) -> Unit,
+    showRandomArticle: Boolean = true,
+    onOpenRandom: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
 
@@ -163,6 +165,8 @@ fun ArticleContent(
                         onOpenLink = onOpenLink,
                         scrollState = scrollState,
                         renderedHeadings = tables.mapNotNull { it.heading?.lowercase() }.toSet(),
+                        showRandomArticle = showRandomArticle,
+                        onOpenRandom = onOpenRandom,
                     )
                 }
             }
@@ -232,6 +236,8 @@ private fun ArticleBody(
     // Headings already rendered at the TOP of the article (from parsed tables), so
     // we don't re-print them (and their empty parent wrappers) at the article tail.
     renderedHeadings: Set<String> = emptySet(),
+    showRandomArticle: Boolean = true,
+    onOpenRandom: () -> Unit,
 ) {
     if (extract.isBlank()) {
         LightText(
@@ -321,6 +327,19 @@ private fun ArticleBody(
             }
         }
     }
+
+    if (showRandomArticle) {
+        Spacer(modifier = Modifier.height(1.5f.gridUnitsAsDp()))
+        LightBottomBar(
+            items = listOf(
+                LightBarButton.LightIcon(
+                    icon = LightIcons.LOOP,
+                    onClick = onOpenRandom,
+                    contentDescription = "Random article",
+                ),
+            ),
+        )
+    }
 }
 
 @Composable
@@ -328,11 +347,13 @@ fun AboutContent(
     onBack: () -> Unit,
     invertColors: Boolean = false,
     onToggleInvertColors: () -> Unit = {},
-    onClearRecents: () -> Unit = {},
     showRandomArticle: Boolean = true,
     onToggleRandomArticle: () -> Unit = {},
     showOnThisDay: Boolean = true,
     onToggleOnThisDay: () -> Unit = {},
+    showRecentArticles: Boolean = true,
+    onToggleShowRecentArticles: () -> Unit = {},
+    onClearRecents: () -> Unit = {},
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         LightTopBar(
@@ -370,6 +391,16 @@ fun AboutContent(
                 onClick = onToggleOnThisDay,
             )
 
+            ToggleRow(
+                label = "Show recent articles",
+                checked = showRecentArticles,
+                onClick = onToggleShowRecentArticles,
+            )
+
+            androidx.compose.foundation.layout.Spacer(
+                modifier = Modifier.height(1f.gridUnitsAsDp()),
+            )
+
             LightText(
                 text = "Clear recents",
                 variant = LightTextVariant.Copy,
@@ -386,7 +417,7 @@ fun AboutContent(
 
             Column {
                 LightText(
-                    text = "Wikipedia Tool",
+                    text = "WikiLight",
                     variant = LightTextVariant.Heading,
                 )
                 LightText(
